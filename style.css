@@ -129,4 +129,33 @@
       }
 
 
+      /* 2-column top row */
+      .content {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .content .row.top-row {
+        display: grid;
+        grid-template-columns: 280px 1fr; /* sidebar + quiz */
+        gap: 24px;
+      }
+      .content .row.bottom-row {
+        grid-column: 1 / -1;
+      }
+      
+      /* Responsive collapse on small screens */
+      @media (max-width: 900px) {
+        .content .row.top-row {
+          grid-template-columns: 1fr;
+        }
+      }
+      
+      /* Keep summary looking unified */
+      .panel.summary {
+        border-radius: 16px;
+        padding: 18px;
+        background: rgba(255,255,255,0.03);
+      }
+
 
