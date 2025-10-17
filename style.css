@@ -127,38 +127,44 @@
         border-radius: 12px;
         background: rgba(255,255,255,0.03);
       }
-/* 2 columns, 2 rows: score|quiz on top, summary full-width below */
-.content.layout-2r1 {
-  display: grid;
-  grid-template-columns: 280px 1fr;
+
+/* 2 columns on top, summary full-width below */
+.content.layout-2r1{
+  display:grid;
+  grid-template-columns: 280px 1fr;   /* left sidebar + main quiz */
   grid-template-areas:
     "score quiz"
     "summary summary";
-  gap: 24px;
+  gap:24px;
 }
 
-/* Place the children into named areas */
-#scorePanel { grid-area: score; }
-#quizPanel  { grid-area: quiz; }
-#summary    { grid-area: summary; }
+/* map children to areas */
+#scorePanel{ grid-area:score; }
+#quizPanel { grid-area:quiz; }
+#summary   { grid-area:summary; }
 
-/* Make summary blend nicely */
-.panel.summary {
-  border-radius: 16px;
-  padding: 18px;
-  background: rgba(255,255,255,0.03);
+/* make the summary look like a full-width panel under both */
+.panel.summary{
+  border-radius:16px;
+  padding:18px;
+  background:rgba(255,255,255,.03);
 }
 
-/* Responsive: stack everything on narrow screens */
-@media (max-width: 900px) {
-  .content.layout-2r1 {
-    grid-template-columns: 1fr;
+/* mobile: stack everything vertically */
+@media (max-width:900px){
+  .content.layout-2r1{
+    grid-template-columns:1fr;
     grid-template-areas:
       "score"
       "quiz"
       "summary";
   }
 }
+
+/* optional: when finished, hide the inline nav under the question */
+.quiz-finished .nav-wrap{ display:none !important; }
+
+
 
 
 
