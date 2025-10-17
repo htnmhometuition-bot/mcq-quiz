@@ -1,4 +1,4 @@
-:root {
+    :root {
       --bg: #0b1220;
       --surface: #121a2b;
       --muted: #7e8aa6;
@@ -40,6 +40,7 @@
     header .title { font-weight: 700; letter-spacing: .3px; }
     header .meta { color: var(--muted); font-size: 14px; }
 
+    /* default content grid (overridden later by .layout-2r1) */
     .content { display: grid; grid-template-columns: 380px 1fr; gap: 22px; padding: 22px; }
     @media (max-width: 900px) { .content { grid-template-columns: 1fr; } }
 
@@ -99,73 +100,57 @@
 
     /* Inline navigation buttons under question */
     .nav-wrap {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-
     .nav-wrap button {
-    min-width: 90px;
-    padding: 10px 16px;
-    border-radius: 10px;
+      min-width: 90px;
+      padding: 10px 16px;
+      border-radius: 10px;
     }
-
     .footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
     }
 
-      .panel.summary {
-        margin-top: 20px;
-        padding: 16px;
-        border-radius: 12px;
-        background: rgba(255,255,255,0.03);
+    .panel.summary {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    /* 2 columns on top, summary full-width below */
+    .content.layout-2r1{
+      display:grid;
+      grid-template-columns: 280px 1fr;   /* left sidebar + main quiz */
+      grid-template-areas:
+        "score quiz"
+        "summary summary";
+      gap:24px;
+    }
+    /* map children to areas */
+    #scorePanel{ grid-area:score; }
+    #quizPanel { grid-area:quiz; }
+    #summary   { grid-area:summary; }
+
+    /* mobile: stack everything vertically */
+    @media (max-width:900px){
+      .content.layout-2r1{
+        grid-template-columns:1fr;
+        grid-template-areas:
+          "score"
+          "quiz"
+          "summary";
       }
+    }
 
-/* 2 columns on top, summary full-width below */
-.content.layout-2r1{
-  display:grid;
-  grid-template-columns: 280px 1fr;   /* left sidebar + main quiz */
-  grid-template-areas:
-    "score quiz"
-    "summary summary";
-  gap:24px;
-}
-
-/* map children to areas */
-#scorePanel{ grid-area:score; }
-#quizPanel { grid-area:quiz; }
-#summary   { grid-area:summary; }
-
-/* make the summary look like a full-width panel under both */
-.panel.summary{
-  border-radius:16px;
-  padding:18px;
-  background:rgba(255,255,255,.03);
-}
-
-/* mobile: stack everything vertically */
-@media (max-width:900px){
-  .content.layout-2r1{
-    grid-template-columns:1fr;
-    grid-template-areas:
-      "score"
-      "quiz"
-      "summary";
-  }
-}
-
-/* optional: when finished, hide the inline nav under the question */
-.quiz-finished .nav-wrap{ display:none !important; }
-
-
-
-
-
-
+    /* optional: when finished, hide the inline nav under the question */
+    .quiz-finished .nav-wrap{ display:none !important; }
