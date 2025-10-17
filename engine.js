@@ -120,20 +120,43 @@
       fb.id = 'feedback';
       card.appendChild(fb);
 
-      // Footer controls
+      // Footer controls 
       const footer = document.createElement('div');
       footer.className = 'footer';
+      
       const left = document.createElement('div');
       left.className = 'small';
       left.textContent = isMulti ? 'Select all correct answers' : 'Select one answer';
-      const right = document.createElement('div');
+      
+      const navWrap = document.createElement('div');
+      navWrap.className = 'nav-wrap';
+      
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = '← Prev';
+      prevBtn.id = 'btnPrevInline';
+      prevBtn.className = 'ghost';
+      prevBtn.disabled = state.i === 0;
+      prevBtn.addEventListener('click', () => {
+        if (state.i > 0) { state.i--; saveProgress(); render(); }
+      });
+      
       const checkBtn = document.createElement('button');
       checkBtn.textContent = 'Check Answer';
+      checkBtn.id = 'btnCheckInline';
       checkBtn.addEventListener('click', () => checkAnswer(q));
-      right.appendChild(checkBtn);
-      footer.appendChild(left);
-      footer.appendChild(right);
+      
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next →';
+      nextBtn.id = 'btnNextInline';
+      nextBtn.disabled = state.i >= quiz.questions.length - 1;
+      nextBtn.addEventListener('click', () => {
+        if (state.i < quiz.questions.length - 1) { state.i++; saveProgress(); render(); }
+      });
+      
+      navWrap.append(prevBtn, checkBtn, nextBtn);
+      footer.append(left, navWrap);
       card.appendChild(footer);
+
 
       // Review state visuals
       if (state.review || state.finished) {
@@ -286,3 +309,4 @@
     // Initial render
     render();
 })();
+
