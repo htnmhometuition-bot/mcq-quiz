@@ -127,35 +127,39 @@
         border-radius: 12px;
         background: rgba(255,255,255,0.03);
       }
+/* 2 columns, 2 rows: score|quiz on top, summary full-width below */
+.content.layout-2r1 {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-areas:
+    "score quiz"
+    "summary summary";
+  gap: 24px;
+}
+
+/* Place the children into named areas */
+#scorePanel { grid-area: score; }
+#quizPanel  { grid-area: quiz; }
+#summary    { grid-area: summary; }
+
+/* Make summary blend nicely */
+.panel.summary {
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(255,255,255,0.03);
+}
+
+/* Responsive: stack everything on narrow screens */
+@media (max-width: 900px) {
+  .content.layout-2r1 {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "score"
+      "quiz"
+      "summary";
+  }
+}
 
 
-      /* 2-column top row */
-      .content {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-      }
-      .content .row.top-row {
-        display: grid;
-        grid-template-columns: 280px 1fr; /* sidebar + quiz */
-        gap: 24px;
-      }
-      .content .row.bottom-row {
-        grid-column: 1 / -1;
-      }
-      
-      /* Responsive collapse on small screens */
-      @media (max-width: 900px) {
-        .content .row.top-row {
-          grid-template-columns: 1fr;
-        }
-      }
-      
-      /* Keep summary looking unified */
-      .panel.summary {
-        border-radius: 16px;
-        padding: 18px;
-        background: rgba(255,255,255,0.03);
-      }
 
 
