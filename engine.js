@@ -396,6 +396,7 @@ function finishQuiz() {
     if (state.finished) renderSummary();
     else { $('#summary').classList.remove('active'); $('#summary').innerHTML = ''; }
     maybeAutoFinish();
+    document.body.classList.toggle('quiz-finished', !!state.finished);
   }
 
   // --- Event bindings ---
@@ -419,5 +420,6 @@ function finishQuiz() {
   render();
   maybeAutoFinish(); // in case restored answers already complete
 })();
+
 
 
