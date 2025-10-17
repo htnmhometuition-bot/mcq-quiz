@@ -154,3 +154,43 @@
 
     /* optional: when finished, hide the inline nav under the question */
     .quiz-finished .nav-wrap{ display:none !important; }
+  /* Celebration overlay */
+  .celebrate {
+    position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+    display: grid; place-items: center;
+  }
+  .celebrate .banner {
+    background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.2);
+    padding: 14px 18px; border-radius: 14px; font-weight: 800; letter-spacing:.3px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    transform: scale(.8); opacity: 0; color: #fff;
+    animation: banner-in .5s ease forwards, banner-out .4s ease 2.6s forwards;
+  }
+  .celebrate .banner.perfect { background: linear-gradient(90deg,#8ae, #6effc5); color:#071019; }
+  @keyframes banner-in { to { transform: scale(1); opacity: 1; } }
+  @keyframes banner-out { to { transform: scale(.98); opacity: 0; } }
+
+  /* Confetti bits */
+  .confetti {
+    position: fixed; left: 0; top: -10px; width: 8px; height: 14px; opacity:.95;
+    transform: translate3d(var(--x,0), -20px, 0) rotate(var(--r,0deg));
+    animation: fall linear forwards;
+    border-radius: 2px;
+  }
+  @keyframes fall {
+    to {
+      transform: translate3d(var(--x-end,0), 110vh, 0) rotate(calc(var(--r,0deg) + 360deg));
+      opacity: .95;
+    }
+  }
+
+  /* Glow the score pill when perfect */
+  .glow {
+    box-shadow: 0 0 0 0 rgba(110,255,197,.7);
+    animation: glow-pulse 1.8s ease-out 2;
+  }
+  @keyframes glow-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(110,255,197,.7); }
+    70% { box-shadow: 0 0 24px 14px rgba(110,255,197,.15); }
+    100% { box-shadow: 0 0 0 0 rgba(110,255,197,0); }
+  }
