@@ -22,11 +22,27 @@
       state.finished = !!p.finished;
     } catch {}
   }
-  function resetProgress() {
-    localStorage.removeItem(storageKey(quiz.metadata.id));
-    state = makeInitialState();
-    render();
-  }
+function resetProgress() {
+  localStorage.removeItem(storageKey(quiz.metadata.id));
+
+  // clear any per-question scoring flags
+  quiz.questions.forEach(q => { delete q.__scored; });
+
+  // reset state
+  state = makeInitialState();
+
+  // remove finished UI state
+  document.body.classList.remove('quiz-finished');
+
+  // reset Review button + summary block
+  const btnReview = $('#btnReview');
+  if (btnReview) { btnReview.disabled = true; btnReview.textContent = 'Review'; }
+  const s = $('#summary');
+  if (s) { s.classList.remove('active'); s.innerHTML = ''; }
+
+  render();
+}
+
 
   // --- Initialize quiz (shuffle once) ---
   const quiz = JSON.parse(JSON.stringify(quizData));
@@ -403,4 +419,5 @@ function finishQuiz() {
   render();
   maybeAutoFinish(); // in case restored answers already complete
 })();
+
 
