@@ -307,21 +307,73 @@
       </div>
     `;
   }
+function makeOverlay(bannerText, perfect=false, confettiCount=80) {
+  const overlay = document.createElement('div');
+  overlay.className = 'celebrate';
 
-  function finishQuiz() {
-    computeScoreFromAnswers();
-    state.finished = true;
-    saveProgress();
-    $('#btnReview').disabled = false;
-    document.body.classList.add('quiz-finished');
-    // Debug: show which questions didn't count (remove later if you want)
-    quiz.questions.forEach((q, i) => {
-      const ok = isQuestionCorrect(q);
-      if (!ok) console.warn(`Not counted as correct -> Q${i+1}`, { chosen: state.answers[q.id], correct: q.options.filter(o=>o.isCorrect).map(o=>o.id) });
-    });
-    renderSummary();
-    renderHeaderMeta(); // ensure sidebar pill shows final score
+  const banner = document.createElement('div');
+  banner.className = 'banner' + (perfect ? ' perfect' : '');
+  banner.textContent = bannerText;
+  overlay.appendChild(banner);
+
+  document.body.appendChild(overlay);
+
+  // spawn confetti
+  spawnConfetti(confettiCount, perfect);
+
+  // remove overlay after animation
+  setTimeout(() => overlay.remove(), 3200);
+}
+
+function spawnConfetti(n=80, perfect=false) {
+  const colors = perfect
+    ? ['#6effc5','#9ec4ff','#f7c948','#ff6b6b','#e6ecff']
+    : ['#9ec4ff','#e6ecff','#6effc5'];
+  for (let i=0;i<n;i++){
+    const bit = document.createElement('div');
+    bit.className = 'confetti';
+    const x = Math.random()*100;            // vw start
+    const xEnd = x + (Math.random()*20-10); // drift
+    const dur = 2.0 + Math.random()*1.6;    // 2–3.6s
+    const rot = Math.random()*360+'deg';
+    const color = colors[i % colors.length];
+    bit.style.background = color;
+    bit.style.left = x+'vw';
+    bit.style.setProperty('--x', '0vw');
+    bit.style.setProperty('--x-end', (xEnd-x)+'vw');
+    bit.style.setProperty('--r', rot);
+    bit.style.animationDuration = dur+'s';
+    document.body.appendChild(bit);
+    setTimeout(()=>bit.remove(), dur*1000 + 200);
   }
+}
+
+function finishQuiz() {
+  computeScoreFromAnswers();
+
+  // determine perfect
+  const totalPts = quiz.questions.reduce((a,q)=> a + (q.points ?? quiz.settings?.scoring?.defaultPoints ?? 1), 0);
+  const allCorrect = (state.score === totalPts);
+
+  state.finished = true;
+  saveProgress();
+  $('#btnReview').disabled = false;
+  document.body.classList.add('quiz-finished');
+
+  // Effects 🎉
+  if (allCorrect) {
+    // glow the score pill
+    const pill = document.getElementById('pillScore');
+    if (pill) { pill.classList.add('glow'); setTimeout(()=>pill.classList.remove('glow'), 3000); }
+    makeOverlay('Perfect score! 🎯', true, 150);
+  } else {
+    makeOverlay('Completed! ✅', false, 80);
+  }
+
+  renderSummary();
+  renderHeaderMeta();
+}
+
 
   function render() {
     renderQuestion();
@@ -351,3 +403,4 @@
   render();
   maybeAutoFinish(); // in case restored answers already complete
 })();
+
