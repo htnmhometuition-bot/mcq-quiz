@@ -3,8 +3,9 @@
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
   const shuffle = arr => arr.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]);
+  const normSet = arr => new Set((arr || []).map(x => String(x).trim()).filter(Boolean));
 
-  // --- State management (with localStorage persistence) ---
+  // --- State management ---
   const storageKey = id => `quiz-progress:${id}`;
   function saveProgress() {
     const payload = { i: state.i, answers: state.answers, score: state.score, finished: state.finished };
@@ -27,49 +28,48 @@
     render();
   }
 
-  // --- Initialize quiz with shuffling according to settings ---
-  const quiz = JSON.parse(JSON.stringify(quizData)); // deep-ish clone
+  // --- Initialize quiz (shuffle once) ---
+  const quiz = JSON.parse(JSON.stringify(quizData));
   if (quiz.settings?.shuffleQuestions) quiz.questions = shuffle(quiz.questions);
   quiz.questions.forEach(q => { if (quiz.settings?.shuffleOptions || q.shuffleOptions) q.options = shuffle(q.options); });
 
-  function makeInitialState() {
-    return { i: 0, answers: {}, score: 0, finished: false, review: false };
-  }
+  function makeInitialState() { return { i: 0, answers: {}, score: 0, finished: false, review: false }; }
   let state = makeInitialState();
   loadProgress();
 
   // -----------------------------
-  // AUTO-FINISH HELPERS (NEW)
+  // Auto-finish + reliable scoring
   // -----------------------------
   function allAnswered() {
-    // Count only questions that have a non-empty selection
     let answered = 0;
     for (const q of quiz.questions) {
-      const arr = state.answers[q.id];
-      if (Array.isArray(arr) && arr.length > 0) answered++;
+      const a = state.answers[q.id];
+      if (Array.isArray(a) && a.length > 0) answered++;
     }
     return answered === quiz.questions.length;
   }
 
+  function isQuestionCorrect(q) {
+    const chosen = normSet(state.answers[q.id]);
+    const correct = new Set(q.options.filter(o => o.isCorrect).map(o => String(o.id).trim()));
+    return chosen.size === correct.size && [...chosen].every(v => correct.has(v));
+  }
+
   function computeScoreFromAnswers() {
-    // fresh recompute to avoid relying on per-question clicks
     state.score = 0;
     quiz.questions.forEach(q => {
-      const chosen = new Set(state.answers[q.id] || []);
-      const correct = new Set(q.options.filter(o => o.isCorrect).map(o => o.id));
-      const equal = chosen.size === correct.size && [...chosen].every(v => correct.has(v));
-      if (equal) {
+      const ok = isQuestionCorrect(q);
+      if (ok) {
         const pts = q.points ?? quiz.settings?.scoring?.defaultPoints ?? 1;
         state.score += pts;
       }
-      // mark as scored so later "Check Answer" won't double count
-      q.__scored = equal;
+      q.__scored = ok; // prevent later double-award
     });
   }
 
   function maybeAutoFinish() {
     if (!state.finished && allAnswered()) {
-      finishQuiz(); // will recompute score + render summary
+      finishQuiz();
     }
   }
   // -----------------------------
@@ -184,7 +184,7 @@
       const ok = checkAnswer(q);
       saveProgress();
       renderHeaderMeta();
-      maybeAutoFinish(); // in case this was the last needed check
+      maybeAutoFinish();
     });
     
     const nextBtn = document.createElement('button');
@@ -205,8 +205,8 @@
     }
 
     // Sidebar button states
-    $('#btnPrev').disabled = state.i === 0;
-    $('#btnNext').disabled = state.i >= quiz.questions.length - 1;
+    if ($('#btnPrev')) $('#btnPrev').disabled = state.i === 0;
+    if ($('#btnNext')) $('#btnNext').disabled = state.i >= quiz.questions.length - 1;
     $('#btnReview').disabled = !state.finished;
 
     renderHeaderMeta();
@@ -228,24 +228,23 @@
     }
     saveProgress();
     renderHeaderMeta();
-    maybeAutoFinish(); // <-- auto-finish if that was the last unanswered question
+    maybeAutoFinish();
   }
 
   function checkAnswer(q, silent = false) {
-    const chosen = new Set(state.answers[q.id] || []);
-    const correctSet = new Set(q.options.filter(o => o.isCorrect).map(o => o.id));
-    const isMulti = q.type === 'multiple_choice_multiple';
+    const chosen = normSet(state.answers[q.id]);
+    const correctSet = new Set(q.options.filter(o => o.isCorrect).map(o => String(o.id).trim()));
 
     // Visuals
     $$('.option').forEach(lbl => {
       const input = lbl.querySelector('input');
-      const id = input.value;
+      const id = String(input.value).trim();
       lbl.classList.remove('correct','wrong');
       if (chosen.has(id) && correctSet.has(id)) lbl.classList.add('correct');
       if (chosen.has(id) && !correctSet.has(id)) lbl.classList.add('wrong');
     });
 
-    const allCorrect = equalSets(chosen, correctSet);
+    const allCorrect = chosen.size === correctSet.size && [...chosen].every(v => correctSet.has(v));
     if (!silent) {
       const fb = $('#feedback');
       fb.className = 'feedback ' + (allCorrect ? 'ok' : 'no');
@@ -253,7 +252,7 @@
         ? `<strong>Correct!</strong> ${escapeHTML(pickFeedback(q, chosen))}`
         : `<strong>Not quite.</strong> ${escapeHTML(pickFeedback(q, chosen))}`;
 
-      // scoring: only award once per question the first time user gets it fully correct
+      // award once if first time made fully correct
       const previouslyScored = (q.__scored === true);
       if (allCorrect && !previouslyScored) {
         const pts = q.points ?? quiz.settings?.scoring?.defaultPoints ?? 1;
@@ -268,17 +267,9 @@
 
   function pickFeedback(q, chosen) {
     const fb = [];
-    q.options.forEach(o => {
-      if (chosen.has(o.id) && o.feedback) fb.push(o.feedback);
-    });
+    q.options.forEach(o => { if (chosen.has(String(o.id).trim()) && o.feedback) fb.push(o.feedback); });
     if (fb.length) return fb.join(' ');
     return quiz.settings?.showExplanations && q.explanation ? q.explanation : '';
-  }
-
-  function equalSets(a, b) {
-    if (a.size !== b.size) return false;
-    for (const v of a) if (!b.has(v)) return false;
-    return true;
   }
 
   function resolveSrc(src) {
@@ -300,9 +291,9 @@
       </div>
       <div style="display:grid; gap:10px;">
         ${quiz.questions.map((q,idx)=>{
-          const chosen = new Set(state.answers[q.id] || []);
-          const correctSet = new Set(q.options.filter(o=>o.isCorrect).map(o=>o.id));
-          const ok = equalSets(chosen, correctSet);
+          const chosen = normSet(state.answers[q.id]);
+          const correctSet = new Set(q.options.filter(o=>o.isCorrect).map(o=>String(o.id).trim()));
+          const ok = chosen.size === correctSet.size && [...chosen].every(v => correctSet.has(v));
           return `
             <div class="panel" style="padding:12px">
               <div style="display:flex; justify-content:space-between; gap:10px; align-items:baseline;">
@@ -318,40 +309,45 @@
   }
 
   function finishQuiz() {
-    // Recompute final score from current answers and finish
-    computeScoreFromAnswers();                     // <-- NEW
+    computeScoreFromAnswers();
     state.finished = true;
     saveProgress();
     $('#btnReview').disabled = false;
-    document.body.classList.add('quiz-finished');  // optional: hide inline nav via CSS
+    document.body.classList.add('quiz-finished');
+    // Debug: show which questions didn't count (remove later if you want)
+    quiz.questions.forEach((q, i) => {
+      const ok = isQuestionCorrect(q);
+      if (!ok) console.warn(`Not counted as correct -> Q${i+1}`, { chosen: state.answers[q.id], correct: q.options.filter(o=>o.isCorrect).map(o=>o.id) });
+    });
     renderSummary();
+    renderHeaderMeta(); // ensure sidebar pill shows final score
   }
 
   function render() {
     renderQuestion();
     if (state.finished) renderSummary();
     else { $('#summary').classList.remove('active'); $('#summary').innerHTML = ''; }
-    // If the user had already answered everything (e.g., from restored state), auto-finish now.
-    maybeAutoFinish(); // <-- ensure auto-finish on render too
+    maybeAutoFinish();
   }
 
   // --- Event bindings ---
-  $('#btnNext').addEventListener('click', () => { if (state.i < quiz.questions.length - 1) { state.i++; saveProgress(); render(); } });
-  $('#btnPrev').addEventListener('click', () => { if (state.i > 0) { state.i--; saveProgress(); render(); } });
+  if ($('#btnNext')) $('#btnNext').addEventListener('click', () => { if (state.i < quiz.questions.length - 1) { state.i++; saveProgress(); render(); } });
+  if ($('#btnPrev')) $('#btnPrev').addEventListener('click', () => { if (state.i > 0) { state.i--; saveProgress(); render(); } });
   $('#btnFinish').addEventListener('click', () => finishQuiz());
   $('#btnReset').addEventListener('click', () => { if (confirm('Clear saved progress?')) resetProgress(); });
   $('#btnReview').addEventListener('click', () => { state.review = !state.review; $('#btnReview').textContent = state.review ? 'Exit Review' : 'Review'; render(); });
 
   // Keyboard shortcuts
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') $('#btnNext').click();
-    if (e.key === 'ArrowLeft') $('#btnPrev').click();
+    if (e.key === 'ArrowRight' && $('#btnNext')) $('#btnNext').click();
+    if (e.key === 'ArrowLeft'  && $('#btnPrev')) $('#btnPrev').click();
   });
 
   function escapeHTML(str) {
     return String(str ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
   }
 
-  // Initial render
+  // Initial render + handle restored state
   render();
+  maybeAutoFinish(); // in case restored answers already complete
 })();
