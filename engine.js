@@ -316,7 +316,20 @@ function resetProgress() {
                 <div style="font-weight:700;">Q${idx+1}. ${escapeHTML(q.text?.plain || q.text?.html || '')}</div>
                 <div class="tag">${ok ? '✔ Correct' : '✖ Incorrect'}</div>
               </div>
-              <div class="small" style="margin-top:6px;">Your answer: ${[...chosen].join(', ') || '-'} • Correct: ${[...correctSet].join(', ')}</div>
+              <div class="small" style="margin-top:6px;">
+                  Your answer: ${
+                    [...chosen].map(id => {
+                      const o = q.options.find(opt => String(opt.id).trim() === id);
+                      return o ? escapeHTML(o.text) : id;
+                    }).join(', ') || '-'
+                  } • Correct: ${
+                    [...correctSet].map(id => {
+                      const o = q.options.find(opt => String(opt.id).trim() === id);
+                      return o ? escapeHTML(o.text) : id;
+                    }).join(', ')
+                  }
+                </div>
+
               ${q.explanation ? `<div class="feedback" style="margin-top:8px;">${escapeHTML(q.explanation)}</div>` : ''}
             </div>`;
         }).join('')}
@@ -420,6 +433,7 @@ function finishQuiz() {
   render();
   maybeAutoFinish(); // in case restored answers already complete
 })();
+
 
 
 
