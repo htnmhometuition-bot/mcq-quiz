@@ -1,5 +1,4 @@
-
-    :root {
+:root {
       --bg: #0b1220;
       --surface: #121a2b;
       --muted: #7e8aa6;
@@ -226,3 +225,4 @@ html, body {
 body, .app, #quizPanel {
   overflow: visible !important;
 }
+
