@@ -111,25 +111,67 @@
         padding:14px; gap:14px;
       }
     }
-    @media (max-width:640px){
-      header{
-        position:sticky; top:0; z-index:30; padding:10px 12px; gap:10px;
-        background:rgba(12,18,32,.78); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-        border-bottom:1px solid rgba(255,255,255,.08); box-shadow:0 6px 20px rgba(0,0,0,.25);
-      }
-      header .title{font-size:16px; line-height:1.15}
-      header .meta{font-size:12px; opacity:.85}
+/* ===== Mobile & GHL preview fixes (paste at the VERY END of your <style>) ===== */
 
-      .controls{
-        width:100%; display:grid !important; grid-template-columns:repeat(3,1fr); gap:8px;
-      }
-      .controls button{
-        width:100%; padding:10px 12px; border-radius:10px; line-height:1; box-shadow:none;
-        border:1px solid rgba(255,255,255,.12); background:#1b263b; color:var(--text);
-      }
-      #btnReview{border-color:rgba(108,165,255,.35); background:linear-gradient(180deg,#a9c8ff,#6ca5ff); color:#071019}
-      #btnFinish{border-color:rgba(110,255,197,.35); background:linear-gradient(180deg,#c6ffe7,#6effc5); color:#071019}
-      #btnReset{background:transparent; color:var(--text)}
-      .panel,.qcard{padding:14px; border-radius:12px}
-      .pill{padding:6px 10px; font-size:13px}
-    }
+/* 1) Remove big gutters on phones */
+@media (max-width: 640px){
+  body{ padding:0 !important; }
+  .app{
+    width:100% !important;
+    max-width:none !important;
+    border-radius:0 !important;
+    border:0 !important;
+    box-shadow:none !important;
+  }
+  header{
+    position: sticky; top:0; z-index: 30;
+    padding:10px 12px !important;
+    background:rgba(12,18,32,.78); backdrop-filter: blur(8px);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  header .title{ font-size:16px; }
+  header .meta{ font-size:12px; }
+
+  /* stack controls into 3 equal buttons */
+  .controls{
+    width:100%;
+    display:grid !important;
+    grid-template-columns: repeat(3,1fr);
+    gap:8px;
+  }
+  .controls button{
+    width:100%; padding:10px 12px; border-radius:10px;
+    border:1px solid rgba(255,255,255,.12);
+    background:#1b263b; color:var(--text);
+    box-shadow:none;
+  }
+  #btnReview{ background:linear-gradient(180deg,#a9c8ff,#6ca5ff); color:#071019; }
+  #btnFinish{ background:linear-gradient(180deg,#c6ffe7,#6effc5); color:#071019; }
+
+  /* content & cards: tighter padding, full width */
+  .content.layout-2r1{
+    grid-template-columns:1fr !important;
+    grid-template-areas:"score" "quiz" "summary";
+    padding:12px !important; gap:12px !important;
+  }
+  .panel, .qcard{ padding:12px !important; border-radius:12px; }
+  #quizPanel, #qcard{ min-height:320px; display:block; width:100% !important; }
+}
+
+/* 2) “Break out” of narrow columns GHL may apply */
+:root body .app,
+:root body .content,
+:root body #quizPanel,
+:root body #qcard{
+  width:100% !important;
+  max-width:100% !important;
+}
+
+/* 3) Make sure nothing clips vertically */
+body, .app, #quizPanel{ overflow: visible !important; }
+
+/* 4) If you want true edge-to-edge on phones, uncomment this:
+@media (max-width: 640px){
+  .app{ margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+}
+*/
