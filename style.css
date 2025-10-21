@@ -1,227 +1,135 @@
-    :root {
-      --bg: #0b1220;
-      --surface: #121a2b;
-      --muted: #7e8aa6;
-      --text: #e6ecff;
-      --accent: #6ca5ff;
-      --accent-2: #6effc5;
-      --danger: #ff6b6b;
-      --ok: #2ecc71;
-      --warning: #f7c948;
-      --radius: 16px;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
+:root{
+      --bg:#0b1220; --surface:#121a2b; --muted:#7e8aa6; --text:#e6ecff;
+      --accent:#6ca5ff; --accent-2:#6effc5; --danger:#ff6b6b; --ok:#2ecc71;
+      --radius:16px; --shadow:0 10px 30px rgba(0,0,0,.35);
     }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-      color: var(--text);
-      background: radial-gradient(1000px 700px at 10% -10%, #1a2550 0%, transparent 60%),
-                  radial-gradient(900px 600px at 100% 0%, #103a2e 0%, transparent 60%),
-                  linear-gradient(180deg, #0b1220 0%, #0b1220 100%);
-      display: grid;
-      place-items: start center;
-      padding: 24px;
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--text);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:
+        radial-gradient(1000px 700px at 10% -10%, #1a2550 0%, transparent 60%),
+        radial-gradient(900px 600px at 100% 0%, #103a2e 0%, transparent 60%),
+        linear-gradient(180deg,#0b1220 0%,#0b1220 100%);
+      display:grid; place-items:start center; padding:24px;
     }
-    .app {
-      width: min(1050px, 100%);
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: clip;
-    }
-    header {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 16px; padding: 18px 22px; background: rgba(0,0,0,.25);
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
-    header .title { font-weight: 700; letter-spacing: .3px; }
-    header .meta { color: var(--muted); font-size: 14px; }
-
-    /* default content grid (overridden later by .layout-2r1) */
-    .content { display: grid; grid-template-columns: 380px 1fr; gap: 22px; padding: 22px; }
-    @media (max-width: 900px) { .content { grid-template-columns: 1fr; } }
-
-    .panel {
-      background: var(--surface);
-      border: 1px solid rgba(255,255,255,.06);
-      border-radius: calc(var(--radius) - 6px);
-      padding: 16px;
+    .app{
+      width:min(1050px,100%); overflow:clip; border-radius:var(--radius);
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08); box-shadow:var(--shadow);
     }
 
-    .controls { display: flex; gap: 10px; flex-wrap: wrap; }
-    button, .btn {
-      appearance: none; border: 0; color: #071019; font-weight: 700;
-      padding: 10px 14px; border-radius: 12px; cursor: pointer;
-      background: linear-gradient(180deg, #9ec4ff, #6ca5ff);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 6px 18px rgba(108,165,255,.45);
-      transition: transform .05s ease, filter .2s ease;
+    /* Header */
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      padding:18px 22px;
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      border-bottom:1px solid rgba(255,255,255,.08);
     }
-    button.secondary { background: linear-gradient(180deg, #c2fbe0, #6effc5); box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 6px 18px rgba(110,255,197,.35); }
-    button.ghost { background: rgba(255,255,255,.06); color: var(--text); box-shadow: none; border: 1px solid rgba(255,255,255,.1); }
-    button:disabled { opacity: .55; cursor: not-allowed; filter: grayscale(.2); }
-    button:active { transform: translateY(1px); }
-
-    .progress-wrap { margin: 12px 0 0; }
-    .progress { height: 8px; width: 100%; background: rgba(255,255,255,.06); border-radius: 999px; overflow: hidden; }
-    .progress > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
-
-    /* Question card */
-    .qcard { background: var(--surface); border: 1px solid rgba(255,255,255,.06); border-radius: calc(var(--radius) - 6px); padding: 16px; }
-    .qhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
-    .qtitle { font-size: 20px; font-weight: 700; }
-    .qmeta { color: var(--muted); font-size: 14px; }
-    .qmedia { margin: 8px 0 14px; }
-    .qmedia img, .qmedia video { max-width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); }
-
-    .options { display: grid; gap: 10px; margin: 10px 0; }
-    .option { position: relative; display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.03); cursor: pointer; }
-    .option:hover { background: rgba(255,255,255,.06); }
-    .option input { accent-color: #6ca5ff; transform: scale(1.15); }
-    .option.correct { outline: 2px solid var(--ok); background: rgba(46,204,113,.15); }
-    .option.wrong { outline: 2px solid var(--danger); background: rgba(255,107,107,.12); }
-    .option .label { font-weight: 600; }
-
-    .feedback { margin-top: 10px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); }
-    .feedback.ok { border-color: rgba(46,204,113,.35); }
-    .feedback.no { border-color: rgba(255,107,107,.35); }
-
-    .footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 16px; }
-
-    .summary { display: none; }
-    .summary.active { display: block; }
-    .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.08); color: var(--muted); border: 1px solid rgba(255,255,255,.08); }
-    .pill { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); }
-
-    .small { font-size: 12px; color: var(--muted); }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
-
-    /* Inline navigation buttons under question */
-    .nav-wrap {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
+    header .title{font-weight:700; letter-spacing:.3px}
+    header .meta{color:var(--muted); font-size:14px}
+    .controls{display:flex; gap:10px; flex-wrap:wrap}
+    button,.btn{
+      appearance:none; border:0; cursor:pointer; font-weight:700; color:#071019;
+      padding:10px 14px; border-radius:12px; transition:transform .05s,filter .2s;
+      background:linear-gradient(180deg,#9ec4ff,#6ca5ff);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 6px 18px rgba(108,165,255,.45);
     }
-    .nav-wrap button {
-      min-width: 90px;
-      padding: 10px 16px;
-      border-radius: 10px;
-    }
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 16px;
-    }
+    button.secondary{background:linear-gradient(180deg,#c2fbe0,#6effc5)}
+    button.ghost{background:rgba(255,255,255,.06); color:var(--text); box-shadow:none; border:1px solid rgba(255,255,255,.1)}
+    button:disabled{opacity:.55; cursor:not-allowed; filter:grayscale(.2)}
+    button:active{transform:translateY(1px)}
 
-    .panel.summary {
-      margin-top: 20px;
-      padding: 16px;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.03);
-    }
+    /* Layout */
+    .content{display:grid; grid-template-columns:280px 1fr; gap:22px; padding:22px}
+    .panel{background:var(--surface); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:16px}
+    .pill{display:inline-flex; align-items:center; gap:6px; font-weight:700; padding:8px 12px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08)}
+    .tag{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:rgba(255,255,255,.08); color:var(--muted); border:1px solid rgba(255,255,255,.08)}
+    .progress-wrap{margin-top:12px}
+    .progress{height:8px; width:100%; background:rgba(255,255,255,.06); border-radius:999px; overflow:hidden}
+    .progress>i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--accent),var(--accent-2))}
 
-    /* 2 columns on top, summary full-width below */
-    .content.layout-2r1{
-      display:grid;
-      grid-template-columns: 280px 1fr;   /* left sidebar + main quiz */
-      grid-template-areas:
-        "score quiz"
-        "summary summary";
-      gap:24px;
-    }
-    /* map children to areas */
-    #scorePanel{ grid-area:score; }
-    #quizPanel { grid-area:quiz; }
-    #summary   { grid-area:summary; }
+    .qcard{background:var(--surface); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:16px}
+    .qhead{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:10px}
+    .qtitle{font-size:20px; font-weight:700}
+    .qmeta{color:var(--muted); font-size:14px}
+    .qmedia{margin:8px 0 14px}
+    .qmedia img,.qmedia video{max-width:100%; border-radius:12px; border:1px solid rgba(255,255,255,.08)}
 
-    /* mobile: stack everything vertically */
+    .options{display:grid; gap:10px; margin:10px 0}
+    .option{
+      display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center;
+      padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.03); cursor:pointer; transition:background .15s,transform .05s;
+    }
+    .option:hover{background:rgba(255,255,255,.06)}
+    .option:active{transform:translateY(1px)}
+    .option input{accent-color:#6ca5ff; transform:scale(1.15)}
+    .option.correct{outline:2px solid var(--ok); background:rgba(46,204,113,.15)}
+    .option.wrong{outline:2px solid var(--danger); background:rgba(255,107,107,.12)}
+    .option .label{font-weight:600}
+
+    .nav-wrap{display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap}
+    .nav-wrap button{min-width:90px; padding:10px 16px; border-radius:10px}
+    .footer{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:16px}
+
+    /* Grid areas for score/quiz/summary */
+    .content.layout-2r1{display:grid; grid-template-columns:280px 1fr; grid-template-areas:"score quiz" "summary summary"; gap:24px}
+    #scorePanel{grid-area:score}
+    #quizPanel{grid-area:quiz}
+    #summary{grid-area:summary}
+    .panel.summary{margin-top:0; padding:16px}
+
+    /* Celebration (kept) */
+    .celebrate{position:fixed; inset:0; pointer-events:none; z-index:9999; display:grid; place-items:center}
+    .celebrate .banner{
+      background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.2);
+      padding:14px 18px; border-radius:14px; font-weight:800; letter-spacing:.3px;
+      box-shadow:0 10px 30px rgba(0,0,0,.4); transform:scale(.8); opacity:0; color:#fff;
+      animation:banner-in .5s ease forwards, banner-out .4s ease 2.6s forwards;
+    }
+    .celebrate .banner.perfect{background:linear-gradient(90deg,#8ae,#6effc5); color:#071019}
+    @keyframes banner-in{to{transform:scale(1); opacity:1}}
+    @keyframes banner-out{to{transform:scale(.98); opacity:0}}
+    .confetti{position:fixed; left:0; top:-10px; width:8px; height:14px; opacity:.95; transform:translate3d(var(--x,0),-20px,0) rotate(var(--r,0deg)); animation:fall linear forwards; border-radius:2px}
+    @keyframes fall{to{transform:translate3d(var(--x-end,0),110vh,0) rotate(calc(var(--r,0deg) + 360deg)); opacity:.95}}
+    .glow{box-shadow:0 0 0 0 rgba(110,255,197,.7); animation:glow-pulse 1.8s ease-out 2}
+    @keyframes glow-pulse{0%{box-shadow:0 0 0 0 rgba(110,255,197,.7)} 70%{box-shadow:0 0 24px 14px rgba(110,255,197,.15)} 100%{box-shadow:0 0 0 0 rgba(110,255,197,0)}}
+
+    /* --- GHL/mobile visibility fixes --- */
+    html,body{height:auto !important; min-height:100vh; overflow-x:hidden}
+    .app{width:100%; max-width:1050px; margin:0 auto}
+    #quizPanel,#qcard{min-height:300px; display:block}
+    body,.app,#quizPanel{overflow:visible !important}
+
+    /* --- Mobile polish for header + spacing --- */
     @media (max-width:900px){
       .content.layout-2r1{
-        grid-template-columns:1fr;
-        grid-template-areas:
-          "score"
-          "quiz"
-          "summary";
+        grid-template-columns:1fr !important;
+        grid-template-areas:"score" "quiz" "summary";
+        padding:14px; gap:14px;
       }
     }
+    @media (max-width:640px){
+      header{
+        position:sticky; top:0; z-index:30; padding:10px 12px; gap:10px;
+        background:rgba(12,18,32,.78); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+        border-bottom:1px solid rgba(255,255,255,.08); box-shadow:0 6px 20px rgba(0,0,0,.25);
+      }
+      header .title{font-size:16px; line-height:1.15}
+      header .meta{font-size:12px; opacity:.85}
 
-    /* optional: when finished, hide the inline nav under the question */
-    .quiz-finished .nav-wrap{ display:none !important; }
-  /* Celebration overlay */
-  .celebrate {
-    position: fixed; inset: 0; pointer-events: none; z-index: 9999;
-    display: grid; place-items: center;
-  }
-  .celebrate .banner {
-    background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.2);
-    padding: 14px 18px; border-radius: 14px; font-weight: 800; letter-spacing:.3px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.4);
-    transform: scale(.8); opacity: 0; color: #fff;
-    animation: banner-in .5s ease forwards, banner-out .4s ease 2.6s forwards;
-  }
-  .celebrate .banner.perfect { background: linear-gradient(90deg,#8ae, #6effc5); color:#071019; }
-  @keyframes banner-in { to { transform: scale(1); opacity: 1; } }
-  @keyframes banner-out { to { transform: scale(.98); opacity: 0; } }
-
-  /* Confetti bits */
-  .confetti {
-    position: fixed; left: 0; top: -10px; width: 8px; height: 14px; opacity:.95;
-    transform: translate3d(var(--x,0), -20px, 0) rotate(var(--r,0deg));
-    animation: fall linear forwards;
-    border-radius: 2px;
-  }
-  @keyframes fall {
-    to {
-      transform: translate3d(var(--x-end,0), 110vh, 0) rotate(calc(var(--r,0deg) + 360deg));
-      opacity: .95;
+      .controls{
+        width:100%; display:grid !important; grid-template-columns:repeat(3,1fr); gap:8px;
+      }
+      .controls button{
+        width:100%; padding:10px 12px; border-radius:10px; line-height:1; box-shadow:none;
+        border:1px solid rgba(255,255,255,.12); background:#1b263b; color:var(--text);
+      }
+      #btnReview{border-color:rgba(108,165,255,.35); background:linear-gradient(180deg,#a9c8ff,#6ca5ff); color:#071019}
+      #btnFinish{border-color:rgba(110,255,197,.35); background:linear-gradient(180deg,#c6ffe7,#6effc5); color:#071019}
+      #btnReset{background:transparent; color:var(--text)}
+      .panel,.qcard{padding:14px; border-radius:12px}
+      .pill{padding:6px 10px; font-size:13px}
     }
-  }
-
-  /* Glow the score pill when perfect */
-  .glow {
-    box-shadow: 0 0 0 0 rgba(110,255,197,.7);
-    animation: glow-pulse 1.8s ease-out 2;
-  }
-  @keyframes glow-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(110,255,197,.7); }
-    70% { box-shadow: 0 0 24px 14px rgba(110,255,197,.15); }
-    100% { box-shadow: 0 0 0 0 rgba(110,255,197,0); }
-  }
-
-/* --- Fix quiz visibility inside GoHighLevel mobile preview --- */
-html, body {
-  height: auto !important;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-.app {
-  width: 100%;
-  max-width: 1050px;
-  margin: 0 auto;
-}
-
-.content.layout-2r1 {
-  grid-template-columns: 1fr !important;
-  grid-template-areas:
-    "score"
-    "quiz"
-    "summary";
-  padding: 12px;
-}
-
-#quizPanel, #qcard {
-  min-height: 300px;
-  display: block;
-}
-
-body, .app, #quizPanel {
-  overflow: visible !important;
-}
