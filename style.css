@@ -26,15 +26,19 @@ body {
 }
 .app {
   width: min(1050px, 100%);
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  background: linear-gradient(180deg, #10182c 0%, #0b1220 100%);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: clip;
 }
 header {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px; padding: 18px 22px; background: rgba(0,0,0,.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  background: #0f172a; /* solid navy instead of rgba */
   border-bottom: 1px solid rgba(255,255,255,.08);
 }
 header .title { font-weight: 700; letter-spacing: .3px; }
@@ -242,3 +246,4 @@ body, .app, #quizPanel {
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.5);
 }
+
