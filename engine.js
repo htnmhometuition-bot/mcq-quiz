@@ -1,4 +1,8 @@
-(  // --- Namespace Fix for GHL-safe selectors ---
+(
+
+  function () {
+
+  // --- Namespace Fix for renamed elements (quiz- prefixed) ---
 const NS = 'quiz-';
 function $(sel) {
   if (sel.startsWith('#')) return document.querySelector('#' + NS + sel.slice(1));
@@ -11,7 +15,6 @@ function $$(sel) {
   return Array.from(document.querySelectorAll(sel));
 }
 
-  function () {
   // --- Utility helpers ---
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
@@ -446,6 +449,7 @@ function finishQuiz() {
   render();
   maybeAutoFinish(); // in case restored answers already complete
 })();
+
 
 
 
