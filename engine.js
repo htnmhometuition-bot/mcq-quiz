@@ -1,23 +1,18 @@
-(
-
-  function () {
-
+(function () {
   // --- Namespace Fix for renamed elements (quiz- prefixed) ---
-const NS = 'quiz-';
-function $(sel) {
-  if (sel.startsWith('#')) return document.querySelector('#' + NS + sel.slice(1));
-  if (sel.startsWith('.')) return document.querySelector('.' + NS + sel.slice(1));
-  return document.querySelector(sel);
-}
-function $$(sel) {
-  if (sel.startsWith('#')) return Array.from(document.querySelectorAll('#' + NS + sel.slice(1)));
-  if (sel.startsWith('.')) return Array.from(document.querySelectorAll('.' + NS + sel.slice(1)));
-  return Array.from(document.querySelectorAll(sel));
-}
+  const NS = 'quiz-';
+  function $(sel) {
+    if (sel.startsWith('#')) return document.querySelector('#' + NS + sel.slice(1));
+    if (sel.startsWith('.')) return document.querySelector('.' + NS + sel.slice(1));
+    return document.querySelector(sel);
+  }
+  function $$(sel) {
+    if (sel.startsWith('#')) return Array.from(document.querySelectorAll('#' + NS + sel.slice(1)));
+    if (sel.startsWith('.')) return Array.from(document.querySelectorAll('.' + NS + sel.slice(1)));
+    return Array.from(document.querySelectorAll(sel));
+  }
 
   // --- Utility helpers ---
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => Array.from(document.querySelectorAll(sel));
   const shuffle = arr => arr.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]);
   const normSet = arr => new Set((arr || []).map(x => String(x).trim()).filter(Boolean));
 
@@ -25,10 +20,10 @@ function $$(sel) {
   const storageKey = id => `quiz-progress:${id}`;
   function saveProgress() {
     const payload = { i: state.i, answers: state.answers, score: state.score, finished: state.finished };
-    localStorage.setItem(storageKey(quiz.metadata.id), JSON.stringify(payload));
+    localStorage.setItem(storageKey(quiz.metadata.id || 'default'), JSON.stringify(payload));
   }
   function loadProgress() {
-    const raw = localStorage.getItem(storageKey(quiz.metadata.id));
+    const raw = localStorage.getItem(storageKey(quiz.metadata.id || 'default'));
     if (!raw) return;
     try {
       const p = JSON.parse(raw);
@@ -38,40 +33,30 @@ function $$(sel) {
       state.finished = !!p.finished;
     } catch {}
   }
-function resetProgress() {
-  localStorage.removeItem(storageKey(quiz.metadata.id));
+  function resetProgress() {
+    localStorage.removeItem(storageKey(quiz.metadata.id || 'default'));
+    quiz.questions.forEach(q => { delete q.__scored; });
+    state = makeInitialState();
+    document.body.classList.remove('quiz-finished');
+    const btnReview = $('#btnReview');
+    if (btnReview) { btnReview.disabled = true; btnReview.textContent = 'Review'; }
+    const s = $('#summary');
+    if (s) { s.classList.remove('active'); s.innerHTML = ''; }
+    render();
+  }
 
-  // clear any per-question scoring flags
-  quiz.questions.forEach(q => { delete q.__scored; });
-
-  // reset state
-  state = makeInitialState();
-
-  // remove finished UI state
-  document.body.classList.remove('quiz-finished');
-
-  // reset Review button + summary block
-  const btnReview = $('#btnReview');
-  if (btnReview) { btnReview.disabled = true; btnReview.textContent = 'Review'; }
-  const s = $('#summary');
-  if (s) { s.classList.remove('active'); s.innerHTML = ''; }
-
-  render();
-}
-
-
-  // --- Initialize quiz (shuffle once) ---
+  // --- Initialize quiz ---
   const quiz = JSON.parse(JSON.stringify(quizData));
   if (quiz.settings?.shuffleQuestions) quiz.questions = shuffle(quiz.questions);
-  quiz.questions.forEach(q => { if (quiz.settings?.shuffleOptions || q.shuffleOptions) q.options = shuffle(q.options); });
+  quiz.questions.forEach(q => {
+    if (quiz.settings?.shuffleOptions || q.shuffleOptions) q.options = shuffle(q.options);
+  });
 
   function makeInitialState() { return { i: 0, answers: {}, score: 0, finished: false, review: false }; }
   let state = makeInitialState();
   loadProgress();
 
-  // -----------------------------
-  // Auto-finish + reliable scoring
-  // -----------------------------
+  // --- Scoring helpers ---
   function allAnswered() {
     let answered = 0;
     for (const q of quiz.questions) {
@@ -95,22 +80,19 @@ function resetProgress() {
         const pts = q.points ?? quiz.settings?.scoring?.defaultPoints ?? 1;
         state.score += pts;
       }
-      q.__scored = ok; // prevent later double-award
+      q.__scored = ok;
     });
   }
 
   function maybeAutoFinish() {
-    if (!state.finished && allAnswered()) {
-      finishQuiz();
-    }
+    if (!state.finished && allAnswered()) finishQuiz();
   }
-  // -----------------------------
 
   // --- Rendering ---
   function renderHeaderMeta() {
     const m = quiz.metadata;
     const total = quiz.questions.length;
-    $('#quizMeta').textContent = `${m.title} • ${m.subject} • ${total} question${total>1?'s':''}`;
+    $('#quizMeta').textContent = `${m.title || 'Quiz'} • ${total} question${total > 1 ? 's' : ''}`;
     $('#pillQTotal').textContent = total;
     $('#pillQNum').textContent = state.i + 1;
     $('#pillScore').textContent = `Score: ${state.score}`;
@@ -135,7 +117,6 @@ function resetProgress() {
     `;
     card.appendChild(head);
 
-    // Media
     if (q.media && q.media.length) {
       const m = document.createElement('div');
       m.className = 'qmedia';
@@ -147,19 +128,20 @@ function resetProgress() {
           m.appendChild(img);
         } else if (item.type === 'video') {
           const v = document.createElement('video');
-          v.src = resolveSrc(item.src); v.controls = true; v.playsInline = true; v.preload = 'metadata';
+          v.src = resolveSrc(item.src);
+          v.controls = true;
+          v.playsInline = true;
+          v.preload = 'metadata';
           m.appendChild(v);
         }
       });
       card.appendChild(m);
     }
 
-    // Options
     const isMulti = q.type === 'multiple_choice_multiple';
     const groupName = `q-${q.id}`;
     const wrap = document.createElement('div');
     wrap.className = 'options';
-
     const prevAns = state.answers[q.id] || [];
 
     q.options.forEach((opt, idx) => {
@@ -173,33 +155,27 @@ function resetProgress() {
       input.id = id;
       input.checked = prevAns.includes(opt.id);
       input.addEventListener('change', () => onSelect(q, opt, isMulti));
-
       const text = document.createElement('div');
       text.className = 'label';
       text.innerHTML = escapeHTML(opt.text);
-
       label.appendChild(input);
       label.appendChild(text);
       wrap.appendChild(label);
     });
     card.appendChild(wrap);
 
-    // Feedback / explanation container
     const fb = document.createElement('div');
     fb.id = 'feedback';
     card.appendChild(fb);
 
-    // Footer controls 
     const footer = document.createElement('div');
     footer.className = 'footer';
-    
     const left = document.createElement('div');
     left.className = 'small';
     left.textContent = isMulti ? 'Select all correct answers' : 'Select one answer';
-    
     const navWrap = document.createElement('div');
     navWrap.className = 'nav-wrap';
-    
+
     const prevBtn = document.createElement('button');
     prevBtn.textContent = '← Prev';
     prevBtn.id = 'btnPrevInline';
@@ -208,17 +184,17 @@ function resetProgress() {
     prevBtn.addEventListener('click', () => {
       if (state.i > 0) { state.i--; saveProgress(); render(); }
     });
-    
+
     const checkBtn = document.createElement('button');
     checkBtn.textContent = 'Check Answer';
     checkBtn.id = 'btnCheckInline';
     checkBtn.addEventListener('click', () => {
-      const ok = checkAnswer(q);
+      checkAnswer(q);
       saveProgress();
       renderHeaderMeta();
       maybeAutoFinish();
     });
-    
+
     const nextBtn = document.createElement('button');
     nextBtn.textContent = 'Next →';
     nextBtn.id = 'btnNextInline';
@@ -226,21 +202,15 @@ function resetProgress() {
     nextBtn.addEventListener('click', () => {
       if (state.i < quiz.questions.length - 1) { state.i++; saveProgress(); render(); }
     });
-    
+
     navWrap.append(prevBtn, checkBtn, nextBtn);
     footer.append(left, navWrap);
     card.appendChild(footer);
 
-    // Review state visuals
-    if (state.review || state.finished) {
-      checkAnswer(q, /*silent*/ true);
-    }
-
-    // Sidebar button states
+    if (state.review || state.finished) checkAnswer(q, true);
     if ($('#btnPrev')) $('#btnPrev').disabled = state.i === 0;
     if ($('#btnNext')) $('#btnNext').disabled = state.i >= quiz.questions.length - 1;
     $('#btnReview').disabled = !state.finished;
-
     renderHeaderMeta();
   }
 
@@ -250,7 +220,7 @@ function resetProgress() {
       if (arr.includes(opt.id)) {
         const next = arr.filter(v => v !== opt.id);
         state.answers[q.id] = next;
-        if (next.length === 0) delete state.answers[q.id]; // don't count empties
+        if (next.length === 0) delete state.answers[q.id];
       } else {
         arr.push(opt.id);
         state.answers[q.id] = arr;
@@ -266,8 +236,6 @@ function resetProgress() {
   function checkAnswer(q, silent = false) {
     const chosen = normSet(state.answers[q.id]);
     const correctSet = new Set(q.options.filter(o => o.isCorrect).map(o => String(o.id).trim()));
-
-    // Visuals
     $$('.option').forEach(lbl => {
       const input = lbl.querySelector('input');
       const id = String(input.value).trim();
@@ -275,19 +243,16 @@ function resetProgress() {
       if (chosen.has(id) && correctSet.has(id)) lbl.classList.add('correct');
       if (chosen.has(id) && !correctSet.has(id)) lbl.classList.add('wrong');
     });
-
     const allCorrect = chosen.size === correctSet.size && [...chosen].every(v => correctSet.has(v));
     if (!silent) {
       const fb = $('#feedback');
       fb.className = 'feedback ' + (allCorrect ? 'ok' : 'no');
       fb.innerHTML = allCorrect
-        ? `<strong>Correct!</strong> ${escapeHTML(pickFeedback(q, chosen))}`
-        : `<strong>Not quite.</strong> ${escapeHTML(pickFeedback(q, chosen))}`;
-
-      // award once if first time made fully correct
-      const previouslyScored = (q.__scored === true);
+        ? `<strong>Correct!</strong>`
+        : `<strong>Not quite.</strong>`;
+      const previouslyScored = q.__scored === true;
       if (allCorrect && !previouslyScored) {
-        const pts = q.points ?? quiz.settings?.scoring?.defaultPoints ?? 1;
+        const pts = q.points ?? 1;
         state.score += pts;
         q.__scored = true;
         saveProgress();
@@ -295,13 +260,6 @@ function resetProgress() {
       }
     }
     return allCorrect;
-  }
-
-  function pickFeedback(q, chosen) {
-    const fb = [];
-    q.options.forEach(o => { if (chosen.has(String(o.id).trim()) && o.feedback) fb.push(o.feedback); });
-    if (fb.length) return fb.join(' ');
-    return quiz.settings?.showExplanations && q.explanation ? q.explanation : '';
   }
 
   function resolveSrc(src) {
@@ -312,7 +270,7 @@ function resetProgress() {
 
   function renderSummary() {
     const s = $('#summary');
-    const totalPts = quiz.questions.reduce((a,q)=> a + (q.points ?? quiz.settings?.scoring?.defaultPoints ?? 1), 0);
+    const totalPts = quiz.questions.reduce((a,q)=> a + (q.points ?? 1), 0);
     s.classList.add('active');
     s.innerHTML = `
       <h2 style="margin:0 0 8px;">Quiz Summary</h2>
@@ -321,104 +279,20 @@ function resetProgress() {
         <span class="pill">Score: ${state.score} / ${totalPts}</span>
         <span class="pill">Completed: ${Object.values(state.answers).filter(a=>a&&a.length>0).length}/${quiz.questions.length}</span>
       </div>
-      <div style="display:grid; gap:10px;">
-        ${quiz.questions.map((q,idx)=>{
-          const chosen = normSet(state.answers[q.id]);
-          const correctSet = new Set(q.options.filter(o=>o.isCorrect).map(o=>String(o.id).trim()));
-          const ok = chosen.size === correctSet.size && [...chosen].every(v => correctSet.has(v));
-          return `
-            <div class="panel" style="padding:12px">
-              <div style="display:flex; justify-content:space-between; gap:10px; align-items:baseline;">
-                <div style="font-weight:700;">Q${idx+1}. ${escapeHTML(q.text?.plain || q.text?.html || '')}</div>
-                <div class="tag">${ok ? '✔ Correct' : '✖ Incorrect'}</div>
-              </div>
-              <div class="small" style="margin-top:6px;">
-                  Your answer: ${
-                    [...chosen].map(id => {
-                      const o = q.options.find(opt => String(opt.id).trim() === id);
-                      return o ? escapeHTML(o.text) : id;
-                    }).join(', ') || '-'
-                  } • Correct: ${
-                    [...correctSet].map(id => {
-                      const o = q.options.find(opt => String(opt.id).trim() === id);
-                      return o ? escapeHTML(o.text) : id;
-                    }).join(', ')
-                  }
-                </div>
-
-              ${q.explanation ? `<div class="feedback" style="margin-top:8px;">${escapeHTML(q.explanation)}</div>` : ''}
-            </div>`;
-        }).join('')}
-      </div>
     `;
   }
-function makeOverlay(bannerText, perfect=false, confettiCount=80) {
-  const overlay = document.createElement('div');
-  overlay.className = 'celebrate';
 
-  const banner = document.createElement('div');
-  banner.className = 'banner' + (perfect ? ' perfect' : '');
-  banner.textContent = bannerText;
-  overlay.appendChild(banner);
-
-  document.body.appendChild(overlay);
-
-  // spawn confetti
-  spawnConfetti(confettiCount, perfect);
-
-  // remove overlay after animation
-  setTimeout(() => overlay.remove(), 3200);
-}
-
-function spawnConfetti(n=80, perfect=false) {
-  const colors = perfect
-    ? ['#6effc5','#9ec4ff','#f7c948','#ff6b6b','#e6ecff']
-    : ['#9ec4ff','#e6ecff','#6effc5'];
-  for (let i=0;i<n;i++){
-    const bit = document.createElement('div');
-    bit.className = 'confetti';
-    const x = Math.random()*100;            // vw start
-    const xEnd = x + (Math.random()*20-10); // drift
-    const dur = 2.0 + Math.random()*1.6;    // 2–3.6s
-    const rot = Math.random()*360+'deg';
-    const color = colors[i % colors.length];
-    bit.style.background = color;
-    bit.style.left = x+'vw';
-    bit.style.setProperty('--x', '0vw');
-    bit.style.setProperty('--x-end', (xEnd-x)+'vw');
-    bit.style.setProperty('--r', rot);
-    bit.style.animationDuration = dur+'s';
-    document.body.appendChild(bit);
-    setTimeout(()=>bit.remove(), dur*1000 + 200);
+  function finishQuiz() {
+    computeScoreFromAnswers();
+    const totalPts = quiz.questions.reduce((a,q)=> a + (q.points ?? 1), 0);
+    const allCorrect = state.score === totalPts;
+    state.finished = true;
+    saveProgress();
+    $('#btnReview').disabled = false;
+    document.body.classList.add('quiz-finished');
+    renderSummary();
+    renderHeaderMeta();
   }
-}
-
-function finishQuiz() {
-  computeScoreFromAnswers();
-
-  // determine perfect
-  const totalPts = quiz.questions.reduce((a,q)=> a + (q.points ?? quiz.settings?.scoring?.defaultPoints ?? 1), 0);
-  const allCorrect = (state.score === totalPts);
-
-  state.finished = true;
-  saveProgress();
-  $('#btnReview').disabled = false;
-  document.body.classList.add('quiz-finished');
-
-  // Effects 🎉
-  if (allCorrect) {
-    // glow the score pill
-    const pill = document.getElementById('pillScore');
-    if (pill) { pill.classList.add('glow'); setTimeout(()=>pill.classList.remove('glow'), 3000); }
-    makeOverlay('Perfect score! 🎯', true, 150);
-  } else {
-    makeOverlay('Completed! ✅', false, 80);
-  }
-
-  renderSummary();
-  renderHeaderMeta();
-}
-
 
   function render() {
     renderQuestion();
@@ -445,13 +319,8 @@ function finishQuiz() {
     return String(str ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
   }
 
-  // Initial render + handle restored state
+  // Initial render
   render();
-  maybeAutoFinish(); // in case restored answers already complete
+  maybeAutoFinish();
+
 })();
-
-
-
-
-
-
