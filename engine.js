@@ -1,327 +1,171 @@
-(function () {
-  // --- Namespace Fix for renamed elements (quiz- prefixed) ---
-  const NS = 'quiz-';
-  function $(sel) {
-    if (sel.startsWith('#')) return document.querySelector('#' + NS + sel.slice(1));
-    if (sel.startsWith('.')) return document.querySelector('.' + NS + sel.slice(1));
-    return document.querySelector(sel);
-  }
-  function $$(sel) {
-    if (sel.startsWith('#')) return Array.from(document.querySelectorAll('#' + NS + sel.slice(1)));
-    if (sel.startsWith('.')) return Array.from(document.querySelectorAll('.' + NS + sel.slice(1)));
-    return Array.from(document.querySelectorAll(sel));
-  }
+(function(){
+  const $ = s => document.querySelector(s);
+  const normSet = arr => new Set((arr||[]).map(x=>String(x).trim()).filter(Boolean));
 
-  // --- Utility helpers ---
-  const shuffle = arr => arr.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]);
-  const normSet = arr => new Set((arr || []).map(x => String(x).trim()).filter(Boolean));
+  const quiz = {
+    metadata:{id:"bm-set-1",title:"Quiz Bahasa Melayu Tahun 1 - Set 1",subject:"Bahasa Melayu"},
+    questions:[{
+      id:"q001",
+      type:"multiple_choice_single",
+      text:{plain:"Puan Rosnani seorang kerani. _____ mahir menaip surat."},
+      media:[{type:"image",src:"https://storage.googleapis.com/msgsndr/opdMnLEc9CPqsbg9LXye/media/68f4f487166b3d0d4c308aa7.jpeg"}],
+      options:[
+        {id:"o1",text:"Saya",isCorrect:false},
+        {id:"o2",text:"Anda",isCorrect:false},
+        {id:"o3",text:"Beliau",isCorrect:true}
+      ],
+      points:1
+    }]
+  };
 
-  // --- State management ---
-  const storageKey = id => `quiz-progress:${id}`;
-  function saveProgress() {
-    const payload = { i: state.i, answers: state.answers, score: state.score, finished: state.finished };
-    localStorage.setItem(storageKey(quiz.metadata.id || 'default'), JSON.stringify(payload));
-  }
-  function loadProgress() {
-    const raw = localStorage.getItem(storageKey(quiz.metadata.id || 'default'));
-    if (!raw) return;
-    try {
-      const p = JSON.parse(raw);
-      state.i = Math.min(Math.max(+p.i || 0, 0), quiz.questions.length - 1);
-      state.answers = p.answers || {};
-      state.score = +p.score || 0;
-      state.finished = !!p.finished;
-    } catch {}
-  }
-  function resetProgress() {
-    localStorage.removeItem(storageKey(quiz.metadata.id || 'default'));
-    quiz.questions.forEach(q => { delete q.__scored; });
-    state = makeInitialState();
-    document.body.classList.remove('quiz-finished');
-    const btnReview = $('#btnReview');
-    if (btnReview) { btnReview.disabled = true; btnReview.textContent = 'Review'; }
-    const s = $('#summary');
-    if (s) { s.classList.remove('active'); s.innerHTML = ''; }
+  let state={i:0,answers:{},score:0,finished:false};
+  const storageKey=id=>`quiz-progress:${id}`;
+  function saveProgress(){localStorage.setItem(storageKey(quiz.metadata.id),JSON.stringify(state));}
+  function resetProgress(){
+    localStorage.removeItem(storageKey(quiz.metadata.id));
+    quiz.questions.forEach(q=>delete q.__scored);
+    state={i:0,answers:{},score:0,finished:false};
     render();
   }
 
-  // --- Initialize quiz ---
-  const quiz = JSON.parse(JSON.stringify(quizData));
-  if (quiz.settings?.shuffleQuestions) quiz.questions = shuffle(quiz.questions);
-  quiz.questions.forEach(q => {
-    if (quiz.settings?.shuffleOptions || q.shuffleOptions) q.options = shuffle(q.options);
-  });
-
-  function makeInitialState() { return { i: 0, answers: {}, score: 0, finished: false, review: false }; }
-  let state = makeInitialState();
-  loadProgress();
-
-  // --- Scoring helpers ---
-  function allAnswered() {
-    let answered = 0;
-    for (const q of quiz.questions) {
-      const a = state.answers[q.id];
-      if (Array.isArray(a) && a.length > 0) answered++;
-    }
-    return answered === quiz.questions.length;
+  function isQuestionCorrect(q){
+    const chosen=normSet(state.answers[q.id]);
+    const correct=new Set(q.options.filter(o=>o.isCorrect).map(o=>String(o.id).trim()));
+    return chosen.size===correct.size&&[...chosen].every(v=>correct.has(v));
   }
 
-  function isQuestionCorrect(q) {
-    const chosen = normSet(state.answers[q.id]);
-    const correct = new Set(q.options.filter(o => o.isCorrect).map(o => String(o.id).trim()));
-    return chosen.size === correct.size && [...chosen].every(v => correct.has(v));
+  function computeScoreFromAnswers(){
+    state.score=0;
+    quiz.questions.forEach(q=>{if(isQuestionCorrect(q))state.score+=q.points||1;});
   }
 
-  function computeScoreFromAnswers() {
-    state.score = 0;
-    quiz.questions.forEach(q => {
-      const ok = isQuestionCorrect(q);
-      if (ok) {
-        const pts = q.points ?? quiz.settings?.scoring?.defaultPoints ?? 1;
-        state.score += pts;
-      }
-      q.__scored = ok;
-    });
+  function renderHeaderMeta(){
+    $('#quizMeta').textContent=`${quiz.metadata.title} • ${quiz.metadata.subject}`;
   }
 
-  function maybeAutoFinish() {
-    if (!state.finished && allAnswered()) finishQuiz();
-  }
-
-  // --- Rendering ---
-  function renderHeaderMeta() {
-    const m = quiz.metadata;
-    const total = quiz.questions.length;
-    $('#quizMeta').textContent = `${m.title || 'Quiz'} • ${total} question${total > 1 ? 's' : ''}`;
-    $('#pillQTotal').textContent = total;
-    $('#pillQNum').textContent = state.i + 1;
-    $('#pillScore').textContent = `Score: ${state.score}`;
-    const answeredCount = quiz.questions.reduce((n,q)=> n + ((state.answers[q.id]||[]).length>0 ? 1 : 0), 0);
-    const pct = Math.round((answeredCount / total) * 100);
-    $('#progressBar').style.width = pct + '%';
-  }
-
-  function renderQuestion() {
-    const q = quiz.questions[state.i];
-    $('#tagDifficulty').textContent = `difficulty: ${q.difficulty ?? '-'}`;
-    $('#tagType').textContent = `type: ${q.type}`;
-
-    const card = $('#qcard');
-    card.innerHTML = '';
-    card.className = 'quiz-qcard';
-
-    const head = document.createElement('div');
-    head.className = 'quiz-qhead';
-    head.innerHTML = `
-      <div class="quiz-qtitle">${escapeHTML(q.text?.html ?? q.text?.plain ?? '')}</div>
-      <div class="quiz-qmeta quiz-small">Points: ${q.points ?? quiz.settings?.scoring?.defaultPoints ?? 1}</div>
-    `;
+  function renderQuestion(){
+    const q=quiz.questions[state.i];
+    const card=$('#quiz-qcard');
+    card.innerHTML='';
+    const head=document.createElement('div');
+    head.innerHTML=`<div class="quiz-qtitle">${q.text.plain}</div><div class="quiz-qmeta">Points: ${q.points}</div>`;
     card.appendChild(head);
 
-    if (q.media && q.media.length) {
-      const m = document.createElement('div');
-      m.className = 'quiz-qmedia';
-      q.media.forEach(item => {
-        if (item.type === 'image') {
-          const img = document.createElement('img');
-          img.src = resolveSrc(item.src);
-          img.alt = item.alt || '';
-          m.appendChild(img);
-        } else if (item.type === 'video') {
-          const v = document.createElement('video');
-          v.src = resolveSrc(item.src);
-          v.controls = true;
-          v.playsInline = true;
-          v.preload = 'metadata';
-          m.appendChild(v);
-        }
+    if(q.media?.length){
+      const m=document.createElement('div');
+      m.className='quiz-qmedia';
+      q.media.forEach(item=>{
+        const img=document.createElement('img'); img.src=item.src; m.appendChild(img);
       });
       card.appendChild(m);
     }
 
-    const isMulti = q.type === 'multiple_choice_multiple';
-    const groupName = `q-${q.id}`;
-    const wrap = document.createElement('div');
-    wrap.className = 'quiz-options';
-    const prevAns = state.answers[q.id] || [];
-
-    q.options.forEach((opt, idx) => {
-      const id = `${groupName}-opt-${idx}`;
-      const label = document.createElement('label');
-      label.className = 'quiz-option';
-      const input = document.createElement('input');
-      input.type = isMulti ? 'checkbox' : 'radio';
-      input.name = groupName;
-      input.value = opt.id;
-      input.id = id;
-      input.checked = prevAns.includes(opt.id);
-      input.addEventListener('change', () => onSelect(q, opt, isMulti));
-      const text = document.createElement('div');
-      text.className = 'quiz-label';
-      text.innerHTML = escapeHTML(opt.text);
-      label.appendChild(input);
-      label.appendChild(text);
-      wrap.appendChild(label);
+    const wrap=document.createElement('div');
+    wrap.className='quiz-options';
+    const prev=state.answers[q.id]||[];
+    q.options.forEach(opt=>{
+      const lbl=document.createElement('label'); lbl.className='quiz-option';
+      const input=document.createElement('input');
+      input.type='radio'; input.name=q.id; input.value=opt.id;
+      input.checked=prev.includes(opt.id);
+      input.addEventListener('change',()=>onSelect(q,opt));
+      const txt=document.createElement('div'); txt.textContent=opt.text;
+      lbl.append(input,txt); wrap.appendChild(lbl);
     });
     card.appendChild(wrap);
 
-    const fb = document.createElement('div');
-    fb.id = 'quiz-feedback';
-    fb.className = 'quiz-feedback';
+    const fb=document.createElement('div'); fb.id='quiz-feedback'; fb.className='quiz-feedback';
     card.appendChild(fb);
 
-    const footer = document.createElement('div');
-    footer.className = 'quiz-footer';
-    const left = document.createElement('div');
-    left.className = 'quiz-small';
-    left.textContent = isMulti ? 'Select all correct answers' : 'Select one answer';
-    const navWrap = document.createElement('div');
-    navWrap.className = 'nav-wrap';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.textContent = '← Prev';
-    prevBtn.id = 'btnPrevInline';
-    prevBtn.className = 'quiz-button-ghost';
-    prevBtn.disabled = state.i === 0;
-    prevBtn.addEventListener('click', () => {
-      if (state.i > 0) { state.i--; saveProgress(); render(); }
-    });
-
-    const checkBtn = document.createElement('button');
-    checkBtn.textContent = 'Check Answer';
-    checkBtn.id = 'btnCheckInline';
-    checkBtn.className = 'quiz-btn';
-    checkBtn.addEventListener('click', () => {
-      checkAnswer(q);
-      saveProgress();
-      renderHeaderMeta();
-      maybeAutoFinish();
-    });
-
-    const nextBtn = document.createElement('button');
-    nextBtn.textContent = 'Next →';
-    nextBtn.id = 'btnNextInline';
-    nextBtn.className = 'quiz-btn';
-    nextBtn.disabled = state.i >= quiz.questions.length - 1;
-    nextBtn.addEventListener('click', () => {
-      if (state.i < quiz.questions.length - 1) { state.i++; saveProgress(); render(); }
-    });
-
-    navWrap.append(prevBtn, checkBtn, nextBtn);
-    footer.append(left, navWrap);
+    const footer=document.createElement('div');
+    footer.style.marginTop='12px'; footer.style.display='flex'; footer.style.gap='8px';
+    const checkBtn=document.createElement('button');
+    checkBtn.textContent='Check Answer'; checkBtn.className='quiz-btn';
+    checkBtn.onclick=()=>checkAnswer(q);
+    const finishBtn=document.createElement('button');
+    finishBtn.textContent='Finish'; finishBtn.className='quiz-button-secondary';
+    finishBtn.onclick=()=>finishQuiz();
+    footer.append(checkBtn,finishBtn);
     card.appendChild(footer);
 
-    if (state.review || state.finished) checkAnswer(q, true);
-    if ($('#btnPrev')) $('#btnPrev').disabled = state.i === 0;
-    if ($('#btnNext')) $('#btnNext').disabled = state.i >= quiz.questions.length - 1;
-    $('#btnReview').disabled = !state.finished;
     renderHeaderMeta();
   }
 
-  function onSelect(q, opt, isMulti) {
-    const arr = state.answers[q.id] ? [...state.answers[q.id]] : [];
-    if (isMulti) {
-      if (arr.includes(opt.id)) {
-        const next = arr.filter(v => v !== opt.id);
-        state.answers[q.id] = next;
-        if (next.length === 0) delete state.answers[q.id];
-      } else {
-        arr.push(opt.id);
-        state.answers[q.id] = arr;
-      }
-    } else {
-      state.answers[q.id] = [opt.id];
-    }
-    saveProgress();
-    renderHeaderMeta();
-    maybeAutoFinish();
+  function onSelect(q,opt){state.answers[q.id]=[opt.id];saveProgress();}
+
+  function checkAnswer(q){
+    const chosen=normSet(state.answers[q.id]);
+    const correctSet=new Set(q.options.filter(o=>o.isCorrect).map(o=>String(o.id).trim()));
+    const fb=$('#quiz-feedback');
+    const ok=chosen.size===correctSet.size&&[...chosen].every(v=>correctSet.has(v));
+    fb.className='quiz-feedback '+(ok?'ok':'no');
+    fb.textContent=ok?'✅ Correct!':'❌ Not quite.';
+    if(ok&&!q.__scored){state.score+=q.points||1;q.__scored=true;}
   }
 
-  function checkAnswer(q, silent = false) {
-    const chosen = normSet(state.answers[q.id]);
-    const correctSet = new Set(q.options.filter(o => o.isCorrect).map(o => String(o.id).trim()));
-    $$('.quiz-option').forEach(lbl => {
-      const input = lbl.querySelector('input');
-      const id = String(input.value).trim();
-      lbl.classList.remove('correct','wrong');
-      if (chosen.has(id) && correctSet.has(id)) lbl.classList.add('correct');
-      if (chosen.has(id) && !correctSet.has(id)) lbl.classList.add('wrong');
-    });
-    const allCorrect = chosen.size === correctSet.size && [...chosen].every(v => correctSet.has(v));
-    if (!silent) {
-      const fb = $('#quiz-feedback');
-      fb.className = 'quiz-feedback ' + (allCorrect ? 'ok' : 'no');
-      fb.innerHTML = allCorrect
-        ? `<strong>Correct!</strong>`
-        : `<strong>Not quite.</strong>`;
-      const previouslyScored = q.__scored === true;
-      if (allCorrect && !previouslyScored) {
-        const pts = q.points ?? 1;
-        state.score += pts;
-        q.__scored = true;
-        saveProgress();
-        renderHeaderMeta();
-      }
-    }
-    return allCorrect;
-  }
-
-  function resolveSrc(src) {
-    const base = quiz.assets?.baseUrl || '';
-    if (/^https?:\/\//i.test(src) || src.startsWith('data:')) return src;
-    return base.replace(/\/$/, '') + '/' + src.replace(/^\//, '');
-  }
-
-  function renderSummary() {
-    const s = $('#summary');
-    const totalPts = quiz.questions.reduce((a,q)=> a + (q.points ?? 1), 0);
-    s.classList.add('active');
-    s.innerHTML = `
-      <h2 style="margin:0 0 8px;">Quiz Summary</h2>
-      <div class="quiz-small">${escapeHTML(quiz.metadata.title)} • ${quiz.questions.length} questions</div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 16px;">
-        <span class="pill">Score: ${state.score} / ${totalPts}</span>
-        <span class="pill">Completed: ${Object.values(state.answers).filter(a=>a&&a.length>0).length}/${quiz.questions.length}</span>
-      </div>
-    `;
-  }
-
-  function finishQuiz() {
+  function finishQuiz(){
     computeScoreFromAnswers();
-    const totalPts = quiz.questions.reduce((a,q)=> a + (q.points ?? 1), 0);
-    state.finished = true;
-    saveProgress();
-    $('#btnReview').disabled = false;
-    document.body.classList.add('quiz-finished');
+    state.finished=true;
+    const totalPts=quiz.questions.reduce((a,q)=>a+(q.points||1),0);
+    makeOverlay(state.score===totalPts?'Perfect score! 🎯':'Completed! ✅',state.score===totalPts,100);
     renderSummary();
-    renderHeaderMeta();
   }
 
-  function render() {
-    renderQuestion();
-    if (state.finished) renderSummary();
-    else { $('#summary').classList.remove('active'); $('#summary').innerHTML = ''; }
-    maybeAutoFinish();
-    document.body.classList.toggle('quiz-finished', !!state.finished);
+  function renderSummary(){
+    const s=$('#quiz-summary');
+    const totalPts=quiz.questions.reduce((a,q)=>a+(q.points||1),0);
+    s.innerHTML=`
+      <h2 style="margin-bottom:8px;">🎯 Quiz Summary</h2>
+      <p style="margin-bottom:12px;">Score: ${state.score}/${totalPts}</p>
+      ${quiz.questions.map((q,i)=>{
+        const chosen=normSet(state.answers[q.id]);
+        const correct=new Set(q.options.filter(o=>o.isCorrect).map(o=>String(o.id).trim()));
+        const ok=chosen.size===correct.size&&[...chosen].every(v=>correct.has(v));
+        const userAnswer=[...chosen].map(id=>q.options.find(o=>o.id===id)?.text||id).join(', ')||'-';
+        const correctAnswer=[...correct].map(id=>q.options.find(o=>o.id===id)?.text||id).join(', ');
+        return `<div style="background:${ok?'rgba(46,204,113,.1)':'rgba(255,107,107,.1)'};border-left:5px solid ${ok?'#2ecc71':'#ff6b6b'};padding:12px;border-radius:10px;">
+          <b>Q${i+1}.</b> ${q.text.plain}<br>
+          <strong>Your:</strong> ${userAnswer}<br>
+          <strong>Correct:</strong> ${correctAnswer}
+        </div>`;
+      }).join('')}`;
   }
 
-  // --- Event bindings ---
-  if ($('#btnNext')) $('#btnNext').addEventListener('click', () => { if (state.i < quiz.questions.length - 1) { state.i++; saveProgress(); render(); } });
-  if ($('#btnPrev')) $('#btnPrev').addEventListener('click', () => { if (state.i > 0) { state.i--; saveProgress(); render(); } });
-  $('#btnFinish').addEventListener('click', () => finishQuiz());
-  $('#btnReset').addEventListener('click', () => { if (confirm('Clear saved progress?')) resetProgress(); });
-  $('#btnReview').addEventListener('click', () => { state.review = !state.review; $('#btnReview').textContent = state.review ? 'Exit Review' : 'Review'; render(); });
-
-  // Keyboard shortcuts
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight' && $('#btnNext')) $('#btnNext').click();
-    if (e.key === 'ArrowLeft'  && $('#btnPrev')) $('#btnPrev').click();
-  });
-
-  function escapeHTML(str) {
-    return String(str ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  function makeOverlay(text,perfect=false,count=80){
+    const overlay=document.createElement('div');
+    overlay.className='celebrate';
+    const banner=document.createElement('div');
+    banner.className='banner';
+    banner.textContent=text;
+    overlay.appendChild(banner);
+    document.body.appendChild(overlay);
+    spawnConfetti(count,perfect);
+    setTimeout(()=>overlay.remove(),3200);
   }
 
+  function spawnConfetti(n=80,perfect=false){
+    const colors=perfect?['#6effc5','#9ec4ff','#f7c948','#ff6b6b','#e6ecff']:['#9ec4ff','#e6ecff','#6effc5'];
+    for(let i=0;i<n;i++){
+      const bit=document.createElement('div');
+      bit.className='confetti';
+      const x=Math.random()*100;
+      const xEnd=x+(Math.random()*20-10);
+      const dur=2+Math.random()*1.6;
+      const rot=Math.random()*360+'deg';
+      bit.style.background=colors[i%colors.length];
+      bit.style.left=x+'vw';
+      bit.style.setProperty('--x','0vw');
+      bit.style.setProperty('--x-end',(xEnd-x)+'vw');
+      bit.style.setProperty('--r',rot);
+      bit.style.animationDuration=dur+'s';
+      document.body.appendChild(bit);
+      setTimeout(()=>bit.remove(),dur*1000+200);
+    }
+  }
+
+  $('#quiz-btnFinish').onclick=()=>finishQuiz();
+  $('#quiz-btnReset').onclick=()=>{if(confirm('Clear progress?'))resetProgress();};
+
+  function render(){renderQuestion();renderHeaderMeta();}
   render();
-  maybeAutoFinish();
 })();
