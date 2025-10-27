@@ -55,9 +55,10 @@
                       <div class="quiz-qmeta">Points: ${q.points}</div>`;
     card.appendChild(head);
     
-    if (q.media && q.media.length) {
+if (q.media && q.media.length) {
   const m = document.createElement("div");
   m.className = "quiz-qmedia";
+
   q.media.forEach((item) => {
     if (item.type === "image") {
       const img = document.createElement("img");
@@ -65,17 +66,30 @@
       img.alt = item.alt || "";
       img.style.maxWidth = "100%";
       img.style.borderRadius = "10px";
+
+      // ✅ Auto-remove if the image fails to load
+      img.onerror = () => {
+        console.warn(`⚠️ Image failed to load: ${item.src}`);
+        img.remove(); // remove the broken <img>
+        // Optional: remove the entire container if all images fail
+        if (!m.querySelector("img, video")) m.remove();
+      };
+
       m.appendChild(img);
     } else if (item.type === "video") {
       const v = document.createElement("video");
       v.src = item.src;
       v.controls = true;
       v.playsInline = true;
+      v.preload = "metadata";
       m.appendChild(v);
     }
   });
-  card.appendChild(m);
+
+  // ✅ Only append media container if it has at least one valid element
+  if (m.children.length > 0) card.appendChild(m);
 }
+
     const wrap = document.createElement("div");
     wrap.className = "quiz-options";
     const prev = state.answers[q.id] || [];
@@ -258,4 +272,5 @@
   }
   render();
 })();
+
 
