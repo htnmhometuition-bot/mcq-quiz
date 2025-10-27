@@ -54,7 +54,28 @@
     head.innerHTML = `<div class="quiz-qtitle">${q.text.plain}</div>
                       <div class="quiz-qmeta">Points: ${q.points}</div>`;
     card.appendChild(head);
-
+    
+    if (q.media && q.media.length) {
+  const m = document.createElement("div");
+  m.className = "quiz-qmedia";
+  q.media.forEach((item) => {
+    if (item.type === "image") {
+      const img = document.createElement("img");
+      img.src = item.src;
+      img.alt = item.alt || "";
+      img.style.maxWidth = "100%";
+      img.style.borderRadius = "10px";
+      m.appendChild(img);
+    } else if (item.type === "video") {
+      const v = document.createElement("video");
+      v.src = item.src;
+      v.controls = true;
+      v.playsInline = true;
+      m.appendChild(v);
+    }
+  });
+  card.appendChild(m);
+}
     const wrap = document.createElement("div");
     wrap.className = "quiz-options";
     const prev = state.answers[q.id] || [];
@@ -237,3 +258,4 @@
   }
   render();
 })();
+
