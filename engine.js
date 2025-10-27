@@ -3,10 +3,9 @@
   const normSet = (arr) =>
     new Set((arr || []).map((x) => String(x).trim()).filter(Boolean));
 
-  // Load quiz data from quiz-data.js
   const quiz = window.quizData;
   if (!quiz) {
-    console.error("❌ Quiz data not loaded!");
+    console.error("❌ quizData not found");
     return;
   }
 
@@ -42,32 +41,24 @@
   }
 
   function renderHeaderMeta() {
-    $("#quizMeta").textContent = `${quiz.metadata.title} • ${quiz.metadata.subject}`;
+    const total = quiz.questions.length;
+    $("#quizMeta").textContent = `${quiz.metadata.title} • ${total} Soalan`;
   }
 
   function renderQuestion() {
     const q = quiz.questions[state.i];
     const card = $("#quiz-qcard");
     card.innerHTML = "";
+
     const head = document.createElement("div");
     head.innerHTML = `<div class="quiz-qtitle">${q.text.plain}</div>
                       <div class="quiz-qmeta">Points: ${q.points}</div>`;
     card.appendChild(head);
 
-    if (q.media?.length) {
-      const m = document.createElement("div");
-      m.className = "quiz-qmedia";
-      q.media.forEach((item) => {
-        const img = document.createElement("img");
-        img.src = item.src;
-        m.appendChild(img);
-      });
-      card.appendChild(m);
-    }
-
     const wrap = document.createElement("div");
     wrap.className = "quiz-options";
     const prev = state.answers[q.id] || [];
+
     q.options.forEach((opt) => {
       const lbl = document.createElement("label");
       lbl.className = "quiz-option";
@@ -82,6 +73,7 @@
       lbl.append(input, txt);
       wrap.appendChild(lbl);
     });
+
     card.appendChild(wrap);
 
     const fb = document.createElement("div");
@@ -89,19 +81,43 @@
     fb.className = "quiz-feedback";
     card.appendChild(fb);
 
+    // --- Footer buttons (Prev, Check, Next)
     const footer = document.createElement("div");
-    footer.style.marginTop = "12px";
+    footer.style.marginTop = "16px";
     footer.style.display = "flex";
     footer.style.gap = "8px";
+    footer.style.justifyContent = "space-between";
+
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "← Prev";
+    prevBtn.className = "quiz-button-ghost";
+    prevBtn.disabled = state.i === 0;
+    prevBtn.onclick = () => {
+      if (state.i > 0) {
+        state.i--;
+        saveProgress();
+        render();
+      }
+    };
+
     const checkBtn = document.createElement("button");
     checkBtn.textContent = "Check Answer";
     checkBtn.className = "quiz-btn";
     checkBtn.onclick = () => checkAnswer(q);
-    const finishBtn = document.createElement("button");
-    finishBtn.textContent = "Finish";
-    finishBtn.className = "quiz-button-secondary";
-    finishBtn.onclick = () => finishQuiz();
-    footer.append(checkBtn, finishBtn);
+
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next →";
+    nextBtn.className = "quiz-btn";
+    nextBtn.disabled = state.i >= quiz.questions.length - 1;
+    nextBtn.onclick = () => {
+      if (state.i < quiz.questions.length - 1) {
+        state.i++;
+        saveProgress();
+        render();
+      }
+    };
+
+    footer.append(prevBtn, checkBtn, nextBtn);
     card.appendChild(footer);
 
     renderHeaderMeta();
