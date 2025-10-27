@@ -67,7 +67,6 @@ if (q.media && q.media.length) {
       img.style.maxWidth = "100%";
       img.style.borderRadius = "10px";
 
-      // ✅ Auto-remove if the image fails to load
       img.onerror = () => {
         console.warn(`⚠️ Image failed to load: ${item.src}`);
         img.remove(); // remove the broken <img>
@@ -86,7 +85,6 @@ if (q.media && q.media.length) {
     }
   });
 
-  // ✅ Only append media container if it has at least one valid element
   if (m.children.length > 0) card.appendChild(m);
 }
 
@@ -272,5 +270,6 @@ if (q.media && q.media.length) {
   }
   render();
 })();
+
 
 
